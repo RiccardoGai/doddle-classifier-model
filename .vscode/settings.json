@@ -1,0 +1,7 @@
+{
+  "editor.formatOnPaste": false,
+  "prettier.singleQuote": true,
+  "prettier.trailingComma": "none",
+  "editor.formatOnSave": true,
+  "editor.rulers": [110],
+}
