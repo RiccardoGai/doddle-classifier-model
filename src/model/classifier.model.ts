@@ -6,10 +6,10 @@ import { DoddleData } from './doodle-data.model';
 export class Classifier {
   model: tf.Sequential;
   private data: DoddleData;
-  private _logger: Logger;
+  private logger: Logger;
 
   constructor(data: DoddleData) {
-    this._logger = Logger.getLogger({ name: this.constructor.name });
+    this.logger = Logger.getLogger({ name: this.constructor.name });
 
     this.data = data;
     this.model = tf.sequential();
@@ -20,7 +20,7 @@ export class Classifier {
         filters: 8,
         strides: 1,
         activation: 'relu',
-        kernelInitializer: 'VarianceScaling'
+        kernelInitializer: 'varianceScaling'
       })
     );
     this.model.add(
@@ -35,7 +35,7 @@ export class Classifier {
         filters: 16,
         strides: 1,
         activation: 'relu',
-        kernelInitializer: 'VarianceScaling'
+        kernelInitializer: 'varianceScaling'
       })
     );
     this.model.add(
@@ -48,13 +48,12 @@ export class Classifier {
     this.model.add(
       tf.layers.dense({
         units: this.data.totalClasses,
-        kernelInitializer: 'VarianceScaling',
+        kernelInitializer: 'varianceScaling',
         activation: 'softmax'
       })
     );
 
-    const LEARNING_RATE = 0.15;
-    const optimizer = tf.train.sgd(LEARNING_RATE);
+    const optimizer = tf.train.adam();
     this.model.compile({
       optimizer,
       loss: 'categoricalCrossentropy',
@@ -68,19 +67,20 @@ export class Classifier {
     for (let i = 0; i < iterations; i++) {
       const batch = this.data.getTrainBatch(batchSize, i * batchSize);
 
-      // this._logger.debug(batch.data.dataSync());
+      // this.logger.debug(batch.data.dataSync());
       const batchData = batch.data.reshape([batch.size, 28, 28, 1]);
-      // this._logger.debug(batchData.dataSync());
+      // this.logger.debug(batchData.dataSync());
       const batchLabels = batch.labels;
       const options = {
         batchSize: batch.size,
-        epochs: 1
+        epochs: 10,
+        shuffle: true
       };
 
       const history = await this.model.fit(batchData, batchLabels, options);
       const loss = history.history.loss[0];
       const accuracy = history.history.acc[0];
-      this._logger.debug(`batch: ${i} loss: ${loss} accuracy: ${accuracy}`);
+      this.logger.debug(`batch: ${i} loss: ${loss} accuracy: ${accuracy}`);
     }
   }
 

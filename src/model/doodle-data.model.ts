@@ -10,10 +10,10 @@ export class DoddleData {
   totalImages: number = 0;
   totalClasses: number = 0;
   labels: string[] = [];
-  private _logger: Logger;
+  private logger: Logger;
 
   constructor() {
-    this._logger = Logger.getLogger({ name: this.constructor.name });
+    this.logger = Logger.getLogger({ name: this.constructor.name });
   }
 
   async loadData(paths: string[], labels: string[]) {
@@ -30,14 +30,26 @@ export class DoddleData {
     for (let i = 0; i < paths.length; i++) {
       const path = paths[i];
       const label = labels[i];
-      const t = new Uint8Array(fs.readFileSync(path, null).buffer);
-      const bytes = t.slice(80, t.length);
+      // NOTE: 80 is length of the header
+      const bytes = new Uint8Array(fs.readFileSync(path, null).buffer).slice(
+        80
+      );
+      // tslint:disable-next-line: no-console
+      if (label === 'cat') {
+        fs.appendFile(
+          'src/data/example-cat.txt',
+          bytes.slice(0, 784).toString(),
+          null,
+          () => null
+        );
+      }
+
       data[label] = {
         data: bytes,
         totalImages: bytes.length / IMAGE_SIZE
       };
       this.totalImages += data[label].totalImages;
-      this._logger.debug(`${label} loaded!`);
+      this.logger.debug(`${label} loaded!`);
     }
 
     this.trainingData = new Uint8Array(this.totalImages * IMAGE_SIZE);
@@ -54,7 +66,7 @@ export class DoddleData {
       }
       offset += data[label].totalImages;
     }
-    this._logger.debug('All data loaded');
+    this.logger.debug('All data loaded');
   }
 
   shuffle() {
@@ -96,7 +108,7 @@ export class DoddleData {
         IMAGE_SIZE
       ]),
       labels: tf.tensor2d(Array.from(batchLabels), [
-        batchData.length / IMAGE_SIZE,
+        batchLabels.length / this.totalClasses,
         this.totalClasses
       ]),
       size: batchData.length / IMAGE_SIZE
