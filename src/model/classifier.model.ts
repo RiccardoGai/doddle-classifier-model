@@ -47,7 +47,7 @@ export class Classifier {
     this.model.add(tf.layers.flatten());
     this.model.add(
       tf.layers.dense({
-        units: this.data.totalClasses,
+        units: this.data.totalLabels,
         kernelInitializer: 'varianceScaling',
         activation: 'softmax'
       })
@@ -62,31 +62,55 @@ export class Classifier {
   }
 
   async train() {
-    const batchSize = 100;
-    const iterations = this.data.totalImages / batchSize;
-    for (let i = 0; i < iterations; i++) {
-      const batch = this.data.getTrainBatch(batchSize, i * batchSize);
+    const batch = 500;
+    const trainDataSize = 50000;
+    const testDataSize = 10000;
+    const [trainXs, trainYs] = tf.tidy(() => {
+      const d = this.data.nextTrainBatch(trainDataSize);
+      return [d.xs.reshape([trainDataSize, 28, 28, 1]), d.labels];
+    });
 
-      // this.logger.debug(batch.data.dataSync());
-      const batchData = batch.data.reshape([batch.size, 28, 28, 1]);
-      // this.logger.debug(batchData.dataSync());
-      const batchLabels = batch.labels;
-      const options = {
-        batchSize: batch.size,
-        epochs: 10,
-        shuffle: true
-      };
+    const [testXs, testYs] = tf.tidy(() => {
+      const d = this.data.nextTestBatch(testDataSize);
+      return [d.xs.reshape([testDataSize, 28, 28, 1]), d.labels];
+    });
 
-      const history = await this.model.fit(batchData, batchLabels, options);
-      const loss = history.history.loss[0];
-      const accuracy = history.history.acc[0];
-      this.logger.debug(`batch: ${i} loss: ${loss} accuracy: ${accuracy}`);
-    }
+    const history = await this.model.fit(trainXs, trainYs, {
+      batchSize: batch,
+      validationData: [testXs, testYs],
+      epochs: 10,
+      shuffle: true
+    });
+    const loss = history.history.loss[0];
+    const accuracy = history.history.acc[0];
+    this.logger.debug(`loss: ${loss} accuracy: ${accuracy}`);
+
+    // const batchSize = 100;
+    // const iterations = this.data.totalImages / batchSize;
+    // for (let i = 0; i < iterations; i++) {
+    //   const batch = this.data.getTrainBatch(batchSize, i * batchSize);
+
+    //   // this.logger.debug(batch.data.dataSync());
+    //   const batchData = batch.data.reshape([batch.size, 28, 28, 1]);
+    //   // this.logger.debug(batchData.dataSync());
+    //   const batchLabels = batch.labels;
+    //   const options = {
+    //     batchSize: batch.size,
+    //     epochs: 10,
+    //     shuffle: true
+    //   };
+
+    //   const history = await this.model.fit(batchData, batchLabels, options);
+    //   const loss = history.history.loss[0];
+    //   const accuracy = history.history.acc[0];
+    //   this.logger.debug(`batch: ${i} loss: ${loss} accuracy: ${accuracy}`);
+    // }
   }
 
   async predict(data: tf.Tensor) {
-    const res = this.model.predict(data) as Tensor;
-    return res.data();
+    return await (this.model.predict(
+      data.reshape([1, 28, 28, 1])
+    ) as Tensor).data();
   }
 
   async save() {
