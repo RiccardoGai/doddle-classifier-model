@@ -62,19 +62,19 @@ export class Classifier {
   }
 
   async train() {
-    const training = tf.data
-      .generator(() => this.data.dataGenerator(this.data, 'train'))
+    const trainingData = tf.data
+      .generator(() => this.data.dataGenerator('train'))
       .shuffle(this.data.maxImageClass * this.data.totalClasses)
       .batch(200);
 
-    const test = tf.data
-      .generator(() => this.data.dataGenerator(this.data, 'test'))
+    const testData = tf.data
+      .generator(() => this.data.dataGenerator('test'))
       .shuffle(this.data.maxImageClass * this.data.totalClasses)
       .batch(200);
 
-    await this.model.fitDataset(training, {
-      epochs: 2,
-      validationData: test,
+    await this.model.fitDataset(trainingData, {
+      epochs: 5,
+      validationData: testData,
       callbacks: {
         onEpochEnd: async (epoch, logs) => {
           this.logger.debug(
@@ -89,7 +89,7 @@ export class Classifier {
 
   async save() {
     fs.writeFileSync(
-      'doddle-model-ts/classes.json',
+      'doddle-model/classes.json',
       JSON.stringify({ classes: this.data.classes })
     );
     await this.model.save('file://./doddle-model-ts');
