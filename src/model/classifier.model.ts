@@ -15,7 +15,7 @@ export class Classifier {
     this.model = tf.sequential();
     this.model.add(
       tf.layers.conv2d({
-        inputShape: [28, 28, 1],
+        inputShape: [data.IMAGE_WIDTH, data.IMAGE_HEIGHT, 1],
         kernelSize: 3,
         filters: 16,
         strides: 1,
@@ -92,6 +92,6 @@ export class Classifier {
       'doddle-model/classes.json',
       JSON.stringify({ classes: this.data.classes })
     );
-    await this.model.save('file://./doddle-model-ts');
+    await this.model.save('file://./doddle-model');
   }
 }
